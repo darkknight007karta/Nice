@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birthday Surprise 🎉</title>
+  <style>
+    :root {
+      --primary: #ff4d94;
+      --glass: rgba(255, 255, 255, 0.12);
+    }
+
+    body {
+      margin: 0; font-family: 'Poppins', sans-serif; text-align: center; color: white;
+      background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+      overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center;
+    }
+
+    canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
+
+    .card {
+      background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      padding: 30px; border-radius: 30px; width: 85%; max-width: 380px;
+      border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      position: relative; z-index: 10; animation: slideUp 0.8s ease-out;
+    }
+
+    .photo-frame {
+      width: 100%; height: 230px; border-radius: 20px; overflow: hidden;
+      margin-bottom: 20px; border: 3px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.05);
+    }
+    .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page { display: none; }
+    .active { display: block; }
+
+    input {
+      padding: 15px; border-radius: 15px; border: none; text-align: center;
+      font-size: 20px; width: 180px; margin-bottom: 20px; background: white; color: var(--primary); outline: none;
+    }
+    
+    button {
+      background: white; color: var(--primary); padding: 15px 30px; border: none;
+      border-radius: 50px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+      cursor: pointer; transition: 0.3s;
+    }
+    button:hover { transform: scale(1.05); background: var(--primary); color: white; }
+
+    #countdown { font-size: 100px; font-weight: 900; }
+
+    .firework-particle {
+      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+      pointer-events: none; z-index: 999;
+    }
+
+    .guide-text {
+      font-size: 0.8em; background: rgba(255, 255, 255, 0.2); padding: 5px 12px;
+      border-radius: 20px; display: inline-block; margin-bottom: 10px; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.6; transform: scale(1); } }
+
+    #yt-player { position: absolute; top: -9999px; }
+  </style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+
+<div id="startOverlay" style="position:fixed; inset:0; background:inherit; z-index:100; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <button onclick="initSite()">Enter Experience</button>
+</div>
+
+<div id="page1" class="page">
+  <div class="card">
+    <h2>🔐 Security Check</h2>
+    <input type="password" id="passInput" maxlength="4" placeholder="••••">
+    <br>
+    <button onclick="checkPassword()">Unlock</button>
+  </div>
+</div>
+
+<div id="page2" class="page">
+  <div class="card">
+    <div class="photo-frame">
+        <img src="https://i.ibb.co/RbZ7TZT/photo.jpg" alt="special on earth 🌍">
+    </div>
+    <h1 style="font-size: 1.5em;">To Sanskruti 🎂</h1>
+    <p style="font-size: 0.9em; opacity: 0.9;">May your day be as incredible as you are,Wishing you lots of happiness today and always..</p>
+    <button onclick="nextPage()">Start Surprise ➡️</button>
+  </div>
+</div>
+
+<div id="pageCount" class="page">
+  <h1 id="countdown">3</h1>
+</div>
+
+<div id="page3" class="page">
+  <div class="card">
+    <h2>✨ Make a Wish</h2>
+    <div style="position: relative; padding: 10px;">
+      <div class="guide-text">👆 Tap the cake to blow candles!</div>
+      <br>
+      <img id="cake" src="https://img.icons8.com/emoji/96/000000/birthday-cake-emoji.png" onclick="blowCandle()" style="width:120px; cursor:pointer;">
+      <div id="flames" style="position:absolute; top:45px; left:50%; transform:translateX(-50%); font-size:25px;">🔥 🔥 🔥</div>
+    </div>
+    <div id="wishMsg" style="display:none; margin-top:10px;">
+      <h3 style="color: #fffb00;">Wishes Sent! ✨</h3>
+    </div>
+    <button onclick="celebrateLoop()" style="margin-top:20px;">Launch Fireworks 🎆</button>
+  </div>
+</div>
+
+<div id="yt-player"></div>
+
+<script>
+let player;
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function initParticles() {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    for(let i = 0; i < 50; i++) {
+        particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2+1, speedX: Math.random()-0.5, speedY: Math.random()-0.5, opacity: Math.random() });
+    }
+}
+
+function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+        p.x += p.speedX; p.y += p.speedY;
+        if(p.x > canvas.width) p.x = 0; if(p.y > canvas.height) p.y = 0;
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    });
+    requestAnimationFrame(animateParticles);
+}
+initParticles(); animateParticles();
+
+var tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+document.getElementsByTagName('head')[0].appendChild(tag);
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('yt-player', {
+    height: '0', width: '0', videoId: 'vhVBWw6rId0',
+    events: { 'onReady': (e) => { player.mute(); player.playVideo(); setTimeout(() => { player.pauseVideo(); player.unMute(); }, 500); } }
+  });
+}
+
+function initSite(){ document.getElementById("startOverlay").style.display="none"; showPage("page1"); }
+
+function checkPassword(){ if(document.getElementById("passInput").value === "2904") showPage("page2"); }
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function nextPage(){
+  showPage("pageCount");
+  let count = 3;
+  const interval = setInterval(()=>{
+    count--; document.getElementById("countdown").innerText = count;
+    if(count === 0){ clearInterval(interval); showPage("page3"); if(player) player.playVideo(); celebrateLoop(); }
+  }, 1000);
+}
+
+function blowCandle(){
+  document.getElementById("flames").style.display = "none";
+  document.querySelector(".guide-text").style.display = "none";
+  document.getElementById("wishMsg").style.display = "block";
+  fireworkExplosion(window.innerWidth/2, window.innerHeight/2);
+}
+
+function celebrateLoop(){
+    for(let i=0; i<8; i++) {
+        setTimeout(() => { fireworkExplosion(Math.random()*window.innerWidth, Math.random()*window.innerHeight*0.7); }, i * 450);
+    }
+}
+
+function fireworkExplosion(x, y) {
+  const count = 45;
+  const colors = ['#ffffff', '#ffeb3b', '#ff4081', '#00e676', '#00b0ff'];
+  for(let i=0; i<count; i++){
+    let p = document.createElement("div");
+    p.className = "firework-particle";
+    document.body.appendChild(p);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.background = color;
+    p.style.boxShadow = `0 0 10px ${color}`;
+    p.style.left = x + "px"; p.style.top = y + "px";
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = 120 + Math.random() * 180;
+    p.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(angle)*velocity}px, ${Math.sin(angle)*velocity}px) scale(0)`, opacity: 0 }
+    ], { duration: 1200, easing: 'cubic-bezier(0, .9, .57, 1)' });
+    setTimeout(() => p.remove(), 1200);
+  }
+}
+</script>
+</body>
+</html>
